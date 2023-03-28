@@ -22,8 +22,8 @@ use duncan3dc\Speaker\Providers\VoiceRssProvider;
 defined('MOODLE_INTERNAL') || die();
 
 if ($ADMIN->fulltree) {
-    $provider = new VoiceRssProvider("6a42c931a8124001a4f6270db149d3de", "es");
-    $tts = new TextToSpeech("Hello World", $provider);
-    $tts->save("/tmp/hello.mp3");
+    $provider = new VoiceRssProvider("6a42c931a8124001a4f6270db149d3de", "es-mx");
+    $tts = new TextToSpeech("Helloooooo", $provider);
+    $tts->save("/var/moodledata/hello.mp3", $tts->getAudioData());
     // Add your block's settings fields here.
 }
