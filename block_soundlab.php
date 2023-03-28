@@ -30,26 +30,7 @@ class block_soundlab extends block_base {
      * @return void
      */
     public function init() {
-        $this->title = get_string('pluginname', 'block_SoundLab');
-    }
-
-    /**
-     * Gets the block contents.
-     *
-     * @return string The block HTML.
-     */
-    public function get_content() {
-        global $OUTPUT;
-        // Contenido que se mostrará en el bloque
-        if ($this->content !== null) {
-            return $this->content;
-        }
-        $this->content = new stdClass();
-        $this->content->footer = '';
-        // Add logic here to define your template data or any other content.
-        $data = ['YOUR DATA GOES HERE'];
-        $this->content->text = $OUTPUT->render_from_template('block_yourplugin/content', $data);
-        return $this->content;
+        $this->title = get_string('pluginname', 'block_soundlab');
     }
 
     public function specialization() {
@@ -66,6 +47,11 @@ class block_soundlab extends block_base {
     }
 
     public function instance_allow_multiple() {
+        return false;
+    }
+
+    public function instance_allow_config()
+    {
         return true;
     }
 
@@ -87,4 +73,29 @@ class block_soundlab extends block_base {
             'my' => true,
         ];
     }
+
+    function get_content()
+    {
+        global $CFG, $COURSE, $PAGE;
+
+        //Get global/admin tts configs
+        require_once('settings_base.php');
+        $volume = volumeSelection();
+        $speed = speedSelection();
+
+        $course = $this->page->course;
+        //Replace get_context_instance by the class for moodle 2.6+
+        if(class_exists('context_module'))
+        {
+            $context = context_course::instance($course->id);
+        }
+        else
+        {
+            $context = get_context_instance(CONTEXT_COURSE, $course->id);
+        }
+
+        $this->content = new stdClass;
+        $ttsAppURL = $CFG->wwwroot . '/blocks/soundlab/app/';
+    }
+
 }
