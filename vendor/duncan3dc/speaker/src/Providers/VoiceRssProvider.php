@@ -138,15 +138,17 @@ class VoiceRssProvider extends AbstractProvider
      */
     public function textToSpeech(string $text): string
     {
-        echo($text);
+
+
         $result = $this->sendRequest("https://api.voicerss.org/", [
             "key"   =>  $this->apikey,
-            "src"   =>  $text,
+            "src"   =>  (string) $text,
             "hl"    =>  $this->language,
             "r"     =>  (string) $this->speed,
             "c"     =>  "MP3",
             "f"     =>  "16khz_16bit_stereo",
         ]);
+
 
         if (substr($result, 0, 6) === "ERROR:") {
             throw new ProviderException("TextToSpeech {$result}");

@@ -5,6 +5,7 @@ namespace duncan3dc\Speaker\Providers;
 use duncan3dc\Speaker\Exceptions\ProviderException;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Psr7\Query;
 
 use function http_build_query;
 
@@ -75,7 +76,7 @@ abstract class AbstractProvider implements ProviderInterface
      */
     protected function sendRequest(string $hostname, array $params): string
     {
-        $url = $hostname . "?" . http_build_query($params);
+        $url = $hostname . "?" . Query::build($params);
 
         $response = $this->getClient()->request("GET", $url);
 
