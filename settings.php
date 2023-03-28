@@ -23,8 +23,6 @@ if ($ADMIN->fulltree)
 {
     $volume = volumeSelection();
     $speed = speedSelection();
-    $settings->add(new admin_setting_configselect('soundlab_starting_volume', get_string('sm_starting_volume', 'soundlab'),
-                    get_string('sm_starting_volumedef', 'soundlab'), 5, $volume));
-    $settings->add(new admin_setting_configselect('soundlab_starting_speed', get_string('sm_starting_speed', 'soundlab'),
-                    get_string('sm_starting_speeddef', 'soundlab'), 2, $speed));
+    $settings->add(new admin_setting_configselect('SoundLabVolumen', 'Volumen', null, 5, $volume));
+    $settings->add(new admin_setting_configselect('SoundLabVelocidad', "Velocidad de reproduccion", null, 2, $speed));
 }
