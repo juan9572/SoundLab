@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of SoundLab plugin for Moodle - http://moodle.org/
 //
 // SoundLab plugin for Moodle is free software: you can redistribute it and/or modify
@@ -14,17 +15,30 @@
 // You should have received a copy of the GNU General Public License
 // along with SoundLab plugin for Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
-defined('MOODLE_INTERNAL') || die();
-
-require_once('settings_base.php');
-
-if ($ADMIN->fulltree)
+/**
+ * Return an array of numbers for the volume
+ * @return array Return an array of numbers
+ */
+function volumeSelection()
 {
-    $volume = volumeSelection();
-    $speed = speedSelection();
-    $settings->add(new admin_setting_configselect('soundlab_starting_volume', get_string('sm_starting_volume', 'soundlab'),
-                    get_string('sm_starting_volumedef', 'soundlab'), 5, $volume));
-    $settings->add(new admin_setting_configselect('soundlab_starting_speed', get_string('sm_starting_speed', 'soundlab'),
-                    get_string('sm_starting_speeddef', 'soundlab'), 2, $speed));
+    for ($i = 100; $i > 0; $i = $i - 5)
+    {
+        $volume[] = $i;
+    }
+    return $volume;
 }
+
+/**
+ * Return an array of numbers for the speed
+ * @return array Return an array of numbers
+ */
+function speedSelection()
+{
+    for ($i = -10; $i <= 10; $i = $i + 2)
+    {
+        $speed[] = $i;
+    }
+    return $speed;
+}
+
+?>
