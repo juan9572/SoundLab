@@ -96,6 +96,10 @@ class block_soundlab extends block_base {
 
         $this->content = new stdClass;
         $ttsAppURL = $CFG->wwwroot . '/blocks/soundlab/app/';
+        $this->content->text = '<h5>Volumen</h5>
+        <input type="range" id="volume" class="control-volume" min="0" max="100" value="75" step="1" data-action="volume" />
+        <h5>Velocidad</h5>
+        <input type="range" id="velocity" class="control-velocity" min="-10" max="10" value="2" step="1" data-action="velocity" />';
     }
 
 }
