@@ -115,10 +115,11 @@ class block_soundlab extends block_base {
             document.cookie = "textoPaLeerGonorrea=" + bodyContents + "; expires=" + expiracion + "; path=/";
         });</script>';
         $textoPaLeer = $_COOKIE["textoPaLeerGonorrea"];
-        $provider = new VoiceRssProvider("6a42c931a8124001a4f6270db149d3de", "es-mx", (int) $CFG->SoundLabVelocidad);
-        $tts = new TextToSpeech($textoPaLeer, $provider);
-        $tts->save("/var/www/html/moodle/blocks/soundlab/data.mp3", $tts->getAudioData());
-        $this->content->text .= '<audio autoplay> <source src="/moodle/blocks/soundlab/data.mp3" type="audio/mpeg"> </audio>';
-        setcookie("textoPaLeerGonorrea", "", time() - 3600);
+        if ($textoPaLeer != null){
+            $provider = new VoiceRssProvider("6a42c931a8124001a4f6270db149d3de", "es-mx", (int) $CFG->SoundLabVelocidad);
+            $tts = new TextToSpeech($textoPaLeer, $provider);
+            $tts->save("/var/www/html/moodle/blocks/soundlab/data.mp3", $tts->getAudioData());
+            $this->content->text .= '<audio autoplay> <source src="/moodle/blocks/soundlab/data.mp3" type="audio/mpeg"> </audio>';
+        }
     }
 }
