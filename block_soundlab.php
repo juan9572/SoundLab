@@ -81,12 +81,11 @@ class block_soundlab extends block_base {
 
     function get_content()
     {
-        global $CFG, $COURSE, $PAGE;
+        global $CFG, $COURSE, $PAGE, $DB;
         //Get global/admin tts configs
         require_once('settings_base.php');
         $volume = volumeSelection();
         $speed = speedSelection();
-
         $course = $this->page->course;
         //Replace get_context_instance by the class for moodle 2.6+
         if(class_exists('context_module'))
@@ -97,13 +96,55 @@ class block_soundlab extends block_base {
         {
             $context = get_context_instance(CONTEXT_COURSE, $course->id);
         }
-
+        // Obtener todas las preguntas del cuestionario
+        $questions_data = array();
+        $questions = $DB->get_records('question');
+        foreach($questions as $question){
+            $current_option = 0;
+            $question_text = strip_tags($question->questiontext);
+            $question_type = $question->qtype;
+            $answer_data = array();
+            if($question_type == "match"){
+                $options = array();
+                $answers = $DB->get_records('qtype_match_subquestions', array('questionid' => $question->id));
+                foreach($answers as $answer){
+                    $option_text = strip_tags($answer->questiontext);
+                    $answer_text = strip_tags($answer->answertext);
+                    $options[] = $option_text;
+                    $answer_data[] = $answer_text;
+                }
+                $questions_data[] = array(
+                    'question' => $question_text,
+                    'answers' => array('options' => $options, 'answer_options' => $answer_data)
+                );
+            }else{
+                $answers = $DB->get_records('question_answers', array('question' => $question->id));
+                foreach($answers as $answer){
+                    $letter = chr(65 + $current_option++);
+                    $answer_text = strip_tags($answer->answer);
+                    $answer_data[] = array($letter => $answer_text);
+                }
+                $questions_data[] = array(
+                    'question' => $question_text,
+                    'answers' => $answer_data
+                );
+            }
+        }
+        file_put_contents(
+            dirname(__FILE__) . '/questions.json',
+            json_encode(array('quiz' => $questions_data), JSON_UNESCAPED_UNICODE)
+        );
         $this->content = new stdClass;
         $ttsAppURL = $CFG->wwwroot . '/blocks/soundlab/';
         $this->content->text = '<h5>Volumen</h5>
         <input type="range" id="volume" class="control-volume" min="0" max="100" value="75" step="1" data-action="volume" />
         <h5>Velocidad</h5>
         <input type="range" id="velocity" class="control-velocity" min="-10" max="10" value="2" step="1" data-action="velocity" />';
+        $provider = new VoiceRssProvider("8a35f597a70b42a8a86ba737d2a1ee2a", "es-mx", (int) $CFG->SoundLabVelocidad); #Esta velocidad esta rara revisar
+        $tts = new TextToSpeech($questions_data[0]['question'], $provider);
+        $tts->save("/var/www/html/moodle/blocks/soundlab/data.mp3", $tts->getAudioData());
+        $this->content->text .= '<audio autoplay> <source src="/moodle/blocks/soundlab/data.mp3" type="audio/mpeg"> </audio>';
+        /*
         $this->content->text .= '<script> window.addEventListener("load", function() {
             var pageContent = document.getElementById(\'responseform\').innerHTML;
             const parser = new DOMParser();
@@ -116,10 +157,6 @@ class block_soundlab extends block_base {
         });</script>';
         $textoPaLeer = $_COOKIE["textoPaLeerGonorrea"];
         if ($textoPaLeer != null){
-            $provider = new VoiceRssProvider("6a42c931a8124001a4f6270db149d3de", "es-mx", (int) $CFG->SoundLabVelocidad);
-            $tts = new TextToSpeech($textoPaLeer, $provider);
-            $tts->save("/var/www/html/moodle/blocks/soundlab/data.mp3", $tts->getAudioData());
-            $this->content->text .= '<audio autoplay> <source src="/moodle/blocks/soundlab/data.mp3" type="audio/mpeg"> </audio>';
-        }
+        }*/
     }
 }
