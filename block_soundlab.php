@@ -172,6 +172,8 @@ class block_soundlab extends block_base {
             $filename = "/var/www/html/moodle/blocks/soundlab/audio/pregunta_" . $i . "/total.mp3";
             $tts->save($filename, $tts->getAudioData());
         }
+        $this->content->text .= '<audio id="player"></audio>';
+        $this->content->text .= '<script src="/moodle/blocks/soundlab/player.js"></script>';
     }
 
     function formatting_quiz($statement, $id, $type, $number){
