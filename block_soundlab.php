@@ -78,7 +78,7 @@ class block_soundlab extends block_base {
             'my' => false,
         ];
     }
-
+    
     function get_content()
     {
         global $CFG, $COURSE, $PAGE, $DB;
@@ -96,67 +96,86 @@ class block_soundlab extends block_base {
         {
             $context = get_context_instance(CONTEXT_COURSE, $course->id);
         }
-        // Obtener todas las preguntas del cuestionario
-        $questions_data = array();
-        $questions = $DB->get_records('question');
-        foreach($questions as $question){
-            $current_option = 0;
-            $question_text = strip_tags($question->questiontext);
-            $question_type = $question->qtype;
-            $answer_data = array();
-            if($question_type == "match"){
-                $options = array();
-                $answers = $DB->get_records('qtype_match_subquestions', array('questionid' => $question->id));
-                foreach($answers as $answer){
-                    $option_text = strip_tags($answer->questiontext);
-                    $answer_text = strip_tags($answer->answertext);
-                    $options[] = $option_text;
-                    $answer_data[] = $answer_text;
-                }
-                $questions_data[] = array(
-                    'question' => $question_text,
-                    'answers' => array('options' => $options, 'answer_options' => $answer_data)
-                );
-            }else{
-                $answers = $DB->get_records('question_answers', array('question' => $question->id));
-                foreach($answers as $answer){
-                    $letter = chr(65 + $current_option++);
-                    $answer_text = strip_tags($answer->answer);
-                    $answer_data[] = array($letter => $answer_text);
-                }
-                $questions_data[] = array(
-                    'question' => $question_text,
-                    'answers' => $answer_data
-                );
-            }
-        }
-        file_put_contents(
-            dirname(__FILE__) . '/questions.json',
-            json_encode(array('quiz' => $questions_data), JSON_UNESCAPED_UNICODE)
-        );
         $this->content = new stdClass;
         $ttsAppURL = $CFG->wwwroot . '/blocks/soundlab/';
         $this->content->text = '<h5>Volumen</h5>
         <input type="range" id="volume" class="control-volume" min="0" max="100" value="75" step="1" data-action="volume" />
         <h5>Velocidad</h5>
         <input type="range" id="velocity" class="control-velocity" min="-10" max="10" value="2" step="1" data-action="velocity" />';
-        $provider = new VoiceRssProvider("8a35f597a70b42a8a86ba737d2a1ee2a", "es-mx", (int) $CFG->SoundLabVelocidad); #Esta velocidad esta rara revisar
-        $tts = new TextToSpeech($questions_data[0]['question'], $provider);
+        $this->content->text .= '
+            <script src="/moodle/blocks/soundlab/get_questions_from_dom.js"></script>
+        ';
+        $filename_questions = '/var/www/html/moodle/blocks/soundlab/questions_dom.json';
+        $json_data;
+        if (file_exists($filename_questions)) { // Si ya se cargo el archivo.
+            $json_data = json_decode(file_get_contents($filename_questions));
+        }else{// Si no se a terminado de cargar se reinicia la página.
+            $this->content->text .= '
+                <script>location.reload();</script>
+            ';
+        }
+        $questions_data = array();
+        $number_of_question = 1;
+        foreach($json_data as $question_text){
+            $sql = "SELECT * FROM {question} WHERE questiontext LIKE :questiontext";
+            $params = array('questiontext' => '%' . $question_text . '%');
+            $result_question = $DB->get_record_sql($sql, $params); // Tomar toda la info de la pregunta
+            $formatted_question = $this->formatting_quiz(
+                $question_text,
+                $result_question->id,
+                $result_question->qtype,
+                $number_of_question++
+            );
+            $questions_data[] = $formatted_question;
+        }
+        $texto_hablar = "Pregunta #" . $questions_data[0]['number'] . "." .
+        $questions_data[0]['statement'] . "." .
+        "A." . $questions_data[0]["answers"][0] . "." .
+        "B." . $questions_data[0]["answers"][1] . "." .
+        "C." . $questions_data[0]["answers"][2] . "." .
+        "D." . $questions_data[0]["answers"][3];
+        /* #Esta velocidad esta rara revisar
+            $provider = new VoiceRssProvider("8a35f597a70b42a8a86ba737d2a1ee2a", "es-mx", (int) $CFG->SoundLabVelocidad);
+        */
+        $provider = new VoiceRssProvider("8a35f597a70b42a8a86ba737d2a1ee2a", "es-mx", 0); #Porque en 0 se escucha muy bien.
+        $tts = new TextToSpeech(
+            $texto_hablar
+            ,$provider);
         $tts->save("/var/www/html/moodle/blocks/soundlab/data.mp3", $tts->getAudioData());
         $this->content->text .= '<audio autoplay> <source src="/moodle/blocks/soundlab/data.mp3" type="audio/mpeg"> </audio>';
-        /*
-        $this->content->text .= '<script> window.addEventListener("load", function() {
-            var pageContent = document.getElementById(\'responseform\').innerHTML;
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(pageContent , \'text/html\');
-            const bodyContents = doc.body.textContent.replace(/\n/g, " ");
-            var fecha = new Date();
-            fecha.setTime(fecha.getTime() + (60 * 60 * 1000)); // 1 hora
-            var expiracion = "expires=" + fecha.toUTCString();
-            document.cookie = "textoPaLeerGonorrea=" + bodyContents + "; expires=" + expiracion + "; path=/";
-        });</script>';
-        $textoPaLeer = $_COOKIE["textoPaLeerGonorrea"];
-        if ($textoPaLeer != null){
-        }*/
+    }
+
+    function formatting_quiz($statement, $id, $type, $number){
+        global $DB;
+        $answer;
+        $answer_data = array();
+        if($type == "match"){
+            $options = array();
+            $answers = $DB->get_records('qtype_match_subquestions', array('questionid' => $id));
+            foreach($answers as $answer){
+                $option_text = strip_tags($answer->questiontext);
+                $answer_text = strip_tags($answer->answertext);
+                $options[] = $option_text;
+                $answer_data[] = $answer_text;
+            }
+            $answer = array('options' => $options, 'answer_options' => $answer_data);
+        }else{
+            $answers = $DB->get_records('question_answers', array('question' => $id));
+            foreach($answers as $answer){
+                $answer_text = strip_tags($answer->answer);
+                $answer_data[] = $answer_text;
+            }
+            $answer = $answer_data;
+        }
+        $data = array(
+            'number' => $number,
+            'statement' => $statement,
+            'answers' => $answer
+        );
+        return $data;
+    }
+
+    function refresh_content(){
+        $this->get_content();
     }
 }
