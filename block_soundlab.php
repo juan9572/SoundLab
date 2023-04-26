@@ -78,7 +78,7 @@ class block_soundlab extends block_base {
             'my' => false,
         ];
     }
-    
+
     function get_content()
     {
         global $CFG, $COURSE, $PAGE, $DB;
@@ -109,7 +109,7 @@ class block_soundlab extends block_base {
         $json_data;
         if (file_exists($filename_questions)) { // Si ya se cargo el archivo.
             $json_data = json_decode(file_get_contents($filename_questions));
-        }else{// Si no se a terminado de cargar se reinicia la página.
+        }else{// Si no se ha terminado de cargar se reinicia la página.
             $this->content->text .= '
                 <script>location.reload();</script>
             ';
@@ -128,21 +128,50 @@ class block_soundlab extends block_base {
             );
             $questions_data[] = $formatted_question;
         }
-        $texto_hablar = "Pregunta #" . $questions_data[0]['number'] . "." .
-        $questions_data[0]['statement'] . "." .
-        "A." . $questions_data[0]["answers"][0] . "." .
-        "B." . $questions_data[0]["answers"][1] . "." .
-        "C." . $questions_data[0]["answers"][2] . "." .
-        "D." . $questions_data[0]["answers"][3];
-        /* #Esta velocidad esta rara revisar
-            $provider = new VoiceRssProvider("8a35f597a70b42a8a86ba737d2a1ee2a", "es-mx", (int) $CFG->SoundLabVelocidad);
-        */
-        $provider = new VoiceRssProvider("8a35f597a70b42a8a86ba737d2a1ee2a", "es-mx", 0); #Porque en 0 se escucha muy bien.
-        $tts = new TextToSpeech(
-            $texto_hablar
-            ,$provider);
-        $tts->save("/var/www/html/moodle/blocks/soundlab/data.mp3", $tts->getAudioData());
-        $this->content->text .= '<audio autoplay> <source src="/moodle/blocks/soundlab/data.mp3" type="audio/mpeg"> </audio>';
+
+        $provider = new VoiceRssProvider("e061b559eb42432880064c64462635dc", "es-mx", 0);
+
+        for ($i = 0; $i < count($questions_data); $i++) {
+            $enunciado = "Pregunta #" . $questions_data[$i]['number'] . "." .
+                $questions_data[$i]['statement'] . ".";
+            $texto_hablar = $enunciado;
+            $tts = new TextToSpeech($enunciado, $provider);
+            $filename = "/var/www/html/moodle/blocks/soundlab/audio/pregunta_" . $i . "/enunciado.mp3";
+            if (!file_exists(dirname($filename))) {
+                mkdir(dirname($filename), 0777, true);
+            }
+            $tts->save($filename, $tts->getAudioData());
+
+            if (count($questions_data[$i]['answers']) >= 2) {
+                $a = "A." . $questions_data[$i]["answers"][0] . ".";
+                $tts = new TextToSpeech($a, $provider);
+                $filename = "/var/www/html/moodle/blocks/soundlab/audio/pregunta_" . $i . "/a.mp3";
+                $tts->save($filename, $tts->getAudioData());
+
+                $b = "B." . $questions_data[$i]["answers"][1] . ".";
+                $tts = new TextToSpeech($b, $provider);
+                $filename = "/var/www/html/moodle/blocks/soundlab/audio/pregunta_" . $i . "/b.mp3";
+                $tts->save($filename, $tts->getAudioData());
+
+                $texto_hablar .= $a . $b;
+            }
+            // Si hay más de dos respuestas, agregamos las opciones C y D
+            if (count($questions_data[$i]['answers']) >= 4) {
+                $c = "C." . $questions_data[$i]["answers"][2] . ".";
+                $tts = new TextToSpeech($c, $provider);
+                $filename = "/var/www/html/moodle/blocks/soundlab/audio/pregunta_" . $i . "/c.mp3";
+                $tts->save($filename, $tts->getAudioData());
+
+                $d = "D." . $questions_data[$i]["answers"][3] . ".";
+                $tts = new TextToSpeech($d, $provider);
+                $filename = "/var/www/html/moodle/blocks/soundlab/audio/pregunta_" . $i . "/d.mp3";
+                $tts->save($filename, $tts->getAudioData());
+                $texto_hablar .= $c . $d;
+            }
+            $tts = new TextToSpeech($texto_hablar, $provider);
+            $filename = "/var/www/html/moodle/blocks/soundlab/audio/pregunta_" . $i . "/total.mp3";
+            $tts->save($filename, $tts->getAudioData());
+        }
     }
 
     function formatting_quiz($statement, $id, $type, $number){
@@ -170,7 +199,8 @@ class block_soundlab extends block_base {
         $data = array(
             'number' => $number,
             'statement' => $statement,
-            'answers' => $answer
+            'answers' => $answer,
+            'type' => $type
         );
         return $data;
     }

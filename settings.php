@@ -24,5 +24,5 @@ if ($ADMIN->fulltree)
     $volume = volumeSelection();
     $speed = speedSelection();
     $settings->add(new admin_setting_configselect('SoundLabVolumen', 'Volumen', null, 5, $volume));
-    $settings->add(new admin_setting_configselect('SoundLabVelocidad', "Velocidad de reproduccion", null, 6, $speed));
+    $settings->add(new admin_setting_configselect('SoundLabVelocidad', "Velocidad de reproduccion", null, 0, $speed));
 }
