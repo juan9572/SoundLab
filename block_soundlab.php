@@ -124,7 +124,7 @@ class block_soundlab extends block_base {
                 $questions_data[] = $formatted_question;
             }
 
-            $provider = new VoiceRssProvider("e061b559eb42432880064c64462635dc", "es-mx", 0);
+            /*$provider = new VoiceRssProvider("e061b559eb42432880064c64462635dc", "es-mx", 0);
 
             for ($i = 0; $i < count($questions_data); $i++) {
                 $enunciado = "Pregunta #" . $questions_data[$i]['number'] . "." .
@@ -167,6 +167,7 @@ class block_soundlab extends block_base {
                 $filename = "/var/www/html/moodle/blocks/soundlab/audio/pregunta_" . $i . "/total.mp3";
                 $tts->save($filename, $tts->getAudioData());
             }
+            */
             $this->content->text .= '<audio id="player"></audio>';
             $this->content->text .= '
                 <script src="/moodle/blocks/soundlab/player.js"></script>
