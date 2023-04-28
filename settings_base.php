@@ -17,28 +17,38 @@
 
 /**
  * Return an array of numbers for the volume
- * @return array Return an array of numbers
+ * @return array Return an array of strings
  */
 function volumeSelection()
 {
-    for ($i = 100; $i > 0; $i = $i - 5)
+    for ($i = 1; $i > 0; $i = $i - 0.01)
     {
-        $volume[] = $i;
+        $volume[] = strval(round($i, 2));
     }
     return $volume;
 }
 
 /**
  * Return an array of numbers for the speed
- * @return array Return an array of numbers
+ * @return array Return an array of strings
  */
 function speedSelection()
 {
-    for ($i = -10; $i <= 10; $i = $i + 2)
+    for ($i = -10; $i <= 10; $i = $i + 1)
     {
-        $speed[] = $i;
+        $speed[] = strval($i);
     }
     return $speed;
+}
+
+/**
+ * Return an array of options for the active state
+ * @return array Return an array of strings
+ */
+function activeSelection()
+{
+    $options = ["1","0"];
+    return $options;
 }
 
 ?>
