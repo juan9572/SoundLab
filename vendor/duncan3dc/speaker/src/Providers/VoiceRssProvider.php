@@ -143,6 +143,7 @@ class VoiceRssProvider extends AbstractProvider
         $result = $this->sendRequest("https://api.voicerss.org/", [
             "key"   =>  $this->apikey,
             "src"   =>  (string) $text,
+            "v"     =>  "Silvia",
             "hl"    =>  $this->language,
             "r"     =>  (string) $this->speed,
             "c"     =>  "MP3",

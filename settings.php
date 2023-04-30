@@ -26,5 +26,5 @@ if ($ADMIN->fulltree)
     $speed = speedSelection();
     $settings->add(new admin_setting_configselect('SoundLabActive', "Bloque activo", "El bloque esta activo desactivo", "0", $options));
     $settings->add(new admin_setting_configselect('SoundLabVolumen', 'Volumen', "Que tan fuerte se escuchan los audios", "0", $volume));
-    $settings->add(new admin_setting_configselect('SoundLabVelocidad', "Velocidad de reproduccion", "Que tan rápido se reproducen los audios", "10", $speed));
+    $settings->add(new admin_setting_configselect('SoundLabVelocidad', "Velocidad de reproduccion", "Que tan rápido se reproducen los audios", "1", $speed));
 }

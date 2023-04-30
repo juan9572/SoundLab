@@ -88,8 +88,8 @@ class block_soundlab extends block_base {
         $speed = speedSelection()[$CFG->SoundLabVelocidad];
         $active = activeSelection()[$CFG->SoundLabActive];
         $course = $this->page->course;
-        echo($CFG->libdir);
         //Replace get_context_instance by the class for moodle 2.6+
+        $quizid = $PAGE->cm->instance;
         if(class_exists('context_module'))
         {
             $context = context_course::instance($course->id);
@@ -112,17 +112,17 @@ class block_soundlab extends block_base {
             <input type="range" id="volume" class="control-volume" min="0" max="1" value="' . $volumen . '" step="0.01" data-action="volume" />
             <h5>Velocidad</h5>
             <span id="speed-value">' . $speed . '</span>
-            <input type="range" id="velocity" class="control-velocity" min="-10" max="10" value="'. $speed .'" step="1" data-action="velocity" />';
+            <input type="range" id="velocity" class="control-velocity" min="-5" max="5" value="'. $speed .'" step="5" data-action="velocity" />';
             $this->content->text .= '
                 <script src="/moodle/blocks/soundlab/get_questions_from_dom.js"></script>
                 <script src="/moodle/blocks/soundlab/controler.js"></script>
             ';
             $filename_questions = '/var/www/html/moodle/blocks/soundlab/questions_dom.json';
-            if (file_exists($filename_questions)){ // Si ya se cargo el archivo.
+            if (file_exists($filename_questions)) { // Si ya se cargo el archivo.
                 $json_data = json_decode(file_get_contents($filename_questions));
                 $questions_data = array();
                 $number_of_question = 1;
-                foreach($json_data as $question_text){
+                foreach($json_data as $question_text) {
                     $sql = "SELECT * FROM {question} WHERE questiontext LIKE :questiontext";
                     $params = array('questiontext' => '%' . $question_text . '%');
                     $result_question = $DB->get_record_sql($sql, $params); // Tomar toda la info de la pregunta
@@ -134,59 +134,131 @@ class block_soundlab extends block_base {
                     );
                     $questions_data[] = $formatted_question;
                 }
-                //Cambiar los count por comparaciones con el campo type.
-                /*$provider = new VoiceRssProvider("e061b559eb42432880064c64462635dc", "es-mx", $speed);
-
-                for ($i = 0; $i < count($questions_data); $i++) {
-                    $enunciado = "Pregunta #" . $questions_data[$i]['number'] . "." .
-                        $questions_data[$i]['statement'] . ".";
-                    $texto_hablar = $enunciado;
-                    $tts = new TextToSpeech($enunciado, $provider);
-                    $filename = "/var/www/html/moodle/blocks/soundlab/audio/pregunta_" . $i . "/enunciado.mp3";
-                    if (!file_exists(dirname($filename))) {
-                        mkdir(dirname($filename), 0777, true);
+                if(!file_exists('/var/www/html/moodle/blocks/soundlab/audio/' . $quizid)) { // Si no se ha creado el contenido de los audios.
+                    for ($i = 0; $i < count($questions_data); $i++) {
+                        $filename = "/var/www/html/moodle/blocks/soundlab/audio/". $quizid ."/pregunta_" . $i . "/data.mp3";
+                        if(!file_exists($filename)){
+                            mkdir(dirname($filename), 0777, true);
+                        }
                     }
-                    $tts->save($filename, $tts->getAudioData());
+                    $providerSlow = new VoiceRssProvider("8a35f597a70b42a8a86ba737d2a1ee2a", "es-mx", -5);
+                    $providerNormal = new VoiceRssProvider("8a35f597a70b42a8a86ba737d2a1ee2a", "es-mx", 0);
+                    $providerFast = new VoiceRssProvider("8a35f597a70b42a8a86ba737d2a1ee2a", "es-mx", 5);
+                    $info = $DB->get_record('quiz', array('id' => $quizid));
+                    $hour = (intval($info->timelimit) / 3600);
+                    $start_text = "Estas realizando el cuestionario, " . $info->name . ", tienes " . $hour . " hora" . ($hour > 1 ? "s" : "") . " para finalizarlo.";
+                    $tts_slowed = new TextToSpeech($start_text, $providerSlow);
+                    $tts_normal = new TextToSpeech($start_text, $providerNormal);
+                    $tts_fast = new TextToSpeech($start_text, $providerFast);
+                    $filename = "/var/www/html/moodle/blocks/soundlab/audio/". $quizid;
+                    $tts_slowed->save($filename . "/start_s.mp3", $tts_slowed->getAudioData());
+                    $tts_normal->save($filename . "/start_n.mp3", $tts_normal->getAudioData());
+                    $tts_fast->save($filename . "/start_f.mp3", $tts_fast->getAudioData());
+                    for ($i = 0; $i < count($questions_data); $i++) {
+                        $enunciado = "Pregunta número " . $questions_data[$i]['number'] . ". " .
+                            $questions_data[$i]['statement'] . ". ";
+                        $texto_hablar = $enunciado;
+                        $tts_slowed = new TextToSpeech($enunciado, $providerSlow);
+                        $tts_normal = new TextToSpeech($enunciado, $providerNormal);
+                        $tts_fast = new TextToSpeech($enunciado, $providerFast);
+                        $filename = "/var/www/html/moodle/blocks/soundlab/audio/". $quizid ."/pregunta_" . $i;
+                        $tts_slowed->save($filename . "/enunciado_s.mp3", $tts_slowed->getAudioData());
+                        $tts_normal->save($filename . "/enunciado_n.mp3", $tts_normal->getAudioData());
+                        $tts_fast->save($filename . "/enunciado_f.mp3", $tts_fast->getAudioData());
+                        if ($questions_data[$i]['type'] == "multichoice") {
+                            $a = "A, " . $questions_data[$i]["answers"][0] . ". ";
+                            $tts_slowed = new TextToSpeech($a, $providerSlow);
+                            $tts_normal = new TextToSpeech($a, $providerNormal);
+                            $tts_fast = new TextToSpeech($a, $providerFast);
+                            $tts_slowed->save($filename . "/a_s.mp3", $tts_slowed->getAudioData());
+                            $tts_normal->save($filename . "/a_n.mp3", $tts_normal->getAudioData());
+                            $tts_fast->save($filename . "/a_f.mp3", $tts_fast->getAudioData());
 
-                    if (count($questions_data[$i]['answers']) >= 2) {
-                        $a = "A." . $questions_data[$i]["answers"][0] . ".";
-                        $tts = new TextToSpeech($a, $provider);
-                        $filename = "/var/www/html/moodle/blocks/soundlab/audio/pregunta_" . $i . "/a.mp3";
-                        $tts->save($filename, $tts->getAudioData());
+                            $b = "B, " . $questions_data[$i]["answers"][1] . ". ";
+                            $tts_slowed = new TextToSpeech($b, $providerSlow);
+                            $tts_normal = new TextToSpeech($b, $providerNormal);
+                            $tts_fast = new TextToSpeech($b, $providerFast);
+                            $tts_slowed->save($filename . "/b_s.mp3", $tts_slowed->getAudioData());
+                            $tts_normal->save($filename . "/b_n.mp3", $tts_normal->getAudioData());
+                            $tts_fast->save($filename . "/b_f.mp3", $tts_fast->getAudioData());
 
-                        $b = "B." . $questions_data[$i]["answers"][1] . ".";
-                        $tts = new TextToSpeech($b, $provider);
-                        $filename = "/var/www/html/moodle/blocks/soundlab/audio/pregunta_" . $i . "/b.mp3";
-                        $tts->save($filename, $tts->getAudioData());
+                            $c = "C, " . $questions_data[$i]["answers"][2] . ". ";
+                            $tts_slowed = new TextToSpeech($c, $providerSlow);
+                            $tts_normal = new TextToSpeech($c, $providerNormal);
+                            $tts_fast = new TextToSpeech($c, $providerFast);
+                            $tts_slowed->save($filename . "/c_s.mp3", $tts_slowed->getAudioData());
+                            $tts_normal->save($filename . "/c_n.mp3", $tts_normal->getAudioData());
+                            $tts_fast->save($filename . "/c_f.mp3", $tts_fast->getAudioData());
 
-                        $texto_hablar .= $a . $b;
+                            $d = "D, " . $questions_data[$i]["answers"][3] . ".";
+                            $tts_slowed = new TextToSpeech($d, $providerSlow);
+                            $tts_normal = new TextToSpeech($d, $providerNormal);
+                            $tts_fast = new TextToSpeech($d, $providerFast);
+                            $tts_slowed->save($filename . "/d_s.mp3", $tts_slowed->getAudioData());
+                            $tts_normal->save($filename . "/d_n.mp3", $tts_normal->getAudioData());
+                            $tts_fast->save($filename . "/d_f.mp3", $tts_fast->getAudioData());
+
+                            $texto_hablar .= $a . $b . $c . $d;
+                        }else if ($questions_data[$i]['type'] == "truefalse") {                            
+                            $a = "A, " . $questions_data[$i]["answers"][0] . ". ";
+                            $tts_slowed = new TextToSpeech($a, $providerSlow);
+                            $tts_normal = new TextToSpeech($a, $providerNormal);
+                            $tts_fast = new TextToSpeech($a, $providerFast);
+                            $tts_slowed->save($filename . "/a_s.mp3", $tts_slowed->getAudioData());
+                            $tts_normal->save($filename . "/a_n.mp3", $tts_normal->getAudioData());
+                            $tts_fast->save($filename . "/a_f.mp3", $tts_fast->getAudioData());
+
+                            $b = "B, " . $questions_data[$i]["answers"][1] . ". ";
+                            $tts_slowed = new TextToSpeech($b, $providerSlow);
+                            $tts_normal = new TextToSpeech($b, $providerNormal);
+                            $tts_fast = new TextToSpeech($b, $providerFast);
+                            $tts_slowed->save($filename . "/b_s.mp3", $tts_slowed->getAudioData());
+                            $tts_normal->save($filename . "/b_n.mp3", $tts_normal->getAudioData());
+                            $tts_fast->save($filename . "/b_f.mp3", $tts_fast->getAudioData());
+
+                            $texto_hablar .= $a . $b;
+                        }else if ($questions_data[$i]['type'] == "match") {
+                            $options = "";
+                            $answers_options = "";
+                            for($j = 0; $j < count($questions_data[$i]["answers"]["options"]); $j++){
+                                $option = chr($j + 65) . ", " . $questions_data[$i]["answers"]["options"][$j];
+                                $answer_option = $j . ", " . $questions_data[$i]["answer_options"]["options"][$j];
+                                $tts_slowed = new TextToSpeech($option, $providerSlow);
+                                $tts_normal = new TextToSpeech($option, $providerNormal);
+                                $tts_fast = new TextToSpeech($option, $providerFast);
+                                $tts_slowed->save($filename . "/". chr(65 + $j) ."_s.mp3", $tts_slowed->getAudioData());
+                                $tts_normal->save($filename . "/". chr(65 + $j) ."_n.mp3", $tts_normal->getAudioData());
+                                $tts_fast->save($filename . "/". chr(65 + $j) ."_f.mp3", $tts_fast->getAudioData());
+                                $tts_slowed = new TextToSpeech($answer_option, $providerSlow);
+                                $tts_normal = new TextToSpeech($answer_option, $providerNormal);
+                                $tts_fast = new TextToSpeech($answer_option, $providerFast);
+                                $tts_slowed->save($filename . "/". $j ."_s.mp3", $tts_slowed->getAudioData());
+                                $tts_normal->save($filename . "/". $j ."_n.mp3", $tts_normal->getAudioData());
+                                $tts_fast->save($filename . "/". $j ."_f.mp3", $tts_fast->getAudioData());
+                                $options .= $option;
+                                $answer_options .= $answer_option;
+                            }
+                            $texto_hablar .= $options . $answers_options;
+                        }
+                        $tts_slowed = new TextToSpeech($texto_hablar, $providerSlow);
+                        $tts_normal = new TextToSpeech($texto_hablar, $providerNormal);
+                        $tts_fast = new TextToSpeech($texto_hablar, $providerFast);
+                        $tts_slowed->save($filename . "/total_s.mp3", $tts_slowed->getAudioData());
+                        $tts_normal->save($filename . "/total_n.mp3", $tts_normal->getAudioData());
+                        $tts_fast->save($filename . "/total_f.mp3", $tts_fast->getAudioData());
                     }
-                    // Si hay más de dos respuestas, agregamos las opciones C y D
-                    if (count($questions_data[$i]['answers']) >= 4) {
-                        $c = "C." . $questions_data[$i]["answers"][2] . ".";
-                        $tts = new TextToSpeech($c, $provider);
-                        $filename = "/var/www/html/moodle/blocks/soundlab/audio/pregunta_" . $i . "/c.mp3";
-                        $tts->save($filename, $tts->getAudioData());
-
-                        $d = "D." . $questions_data[$i]["answers"][3] . ".";
-                        $tts = new TextToSpeech($d, $provider);
-                        $filename = "/var/www/html/moodle/blocks/soundlab/audio/pregunta_" . $i . "/d.mp3";
-                        $tts->save($filename, $tts->getAudioData());
-                        $texto_hablar .= $c . $d;
-                    }
-                    $tts = new TextToSpeech($texto_hablar, $provider);
-                    $filename = "/var/www/html/moodle/blocks/soundlab/audio/pregunta_" . $i . "/total.mp3";
-                    $tts->save($filename, $tts->getAudioData());
                 }
-                */
+                $data = htmlspecialchars(json_encode($questions_data), ENT_QUOTES, 'UTF-8');
                 $this->content->text .= '<audio id="player"></audio>';
-                $this->content->text .= '
-                    <script src="/moodle/blocks/soundlab/player.js"></script>
-                ';
+                $this->content->text .= '<script src="/moodle/blocks/soundlab/player.js" data-quiz_id="' .
+                    $quizid . '" data-questions="' . $data . '"></script>';
             }else{// Si no se ha terminado de cargar se reinicia la página.
                 $this->content->text .= '
-                    <script>location.reload();</script>
-                ';
+                <script>
+                    setTimeout(() => {
+                        location.reload();
+                    }, 300);
+                </script>';
             }
         }else{
             $this->content = new stdClass;
@@ -202,14 +274,14 @@ class block_soundlab extends block_base {
             <input type="range" id="volume" class="control-volume" min="0" max="1" value="' . $volumen . '" step="0.01" data-action="volume" />
             <h5>Velocidad</h5>
             <span id="speed-value">' . $speed . '</span>
-            <input type="range" id="velocity" class="control-velocity" min="-10" max="10" value="'. $speed .'" step="1" data-action="velocity" />';
+            <input type="range" id="velocity" class="control-velocity" min="-5" max="5" value="'. $speed .'" step="5" data-action="velocity" />';
             $this->content->text .= '
                 <script src="/moodle/blocks/soundlab/controler.js"></script>
             ';
         }
     }
 
-    function formatting_quiz($statement, $id, $type, $number){
+    function formatting_quiz($statement, $id, $type, $number) {
         global $DB;
         $answer;
         $answer_data = array();

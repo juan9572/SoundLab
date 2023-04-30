@@ -3,6 +3,45 @@ var volumeElement = document.getElementById('volume');
 var velocityElement = document.getElementById('velocity');
 let value_content;
 
+document.addEventListener('keydown', function (event) {
+    if (event.key === "a") { // Tecla a
+        switchElement.checked = !switchElement.checked;
+        updateConfigActive();
+    }else if(event.altKey && event.key === '1') { //Volume Up
+        if(parseFloat(volumeElement.value) + 0.1 <= 1) {
+            volumeElement.value = parseFloat(volumeElement.value) + 0.1;
+            document.querySelector('#volume-value').textContent = volumeElement.value;
+        }
+    }else if(event.altKey && event.key === '2') { //Volume Down
+        if(parseFloat(volumeElement.value) - 0.1 >= 0) {
+            volumeElement.value = parseFloat(volumeElement.value) - 0.1;
+            document.querySelector('#volume-value').textContent = volumeElement.value;
+        }
+    }else if(event.altKey && event.key === '3') { //Speed up
+        if(parseInt(velocityElement.value, 10) < 5){
+            velocityElement.value = parseInt(velocityElement.value, 10) + 5;
+            document.querySelector('#speed-value').textContent = velocityElement.value;
+        }
+    }else if(event.altKey && event.key === '4') { //Speed down
+        if(parseInt(velocityElement.value, 10) > -5){
+            velocityElement.value = parseInt(velocityElement.value, 10) - 5;
+            document.querySelector('#speed-value').textContent = velocityElement.value;
+        }
+    }
+});
+
+document.addEventListener('keyup', function (event) {
+    if(event.altKey && event.key === '1') { //Volume Up
+        updateConfigVolume();
+    }else if(event.altKey && event.key === '2') { //Volume Down
+        updateConfigVolume();
+    }else if(event.altKey && event.key === '3') { //Speed up
+        updateConfigSpeed();
+    }else if(event.altKey && event.key === '4') { //Speed down
+        updateConfigSpeed();
+    }
+});
+
 function updateConfigVolume() {
     const volume = parseFloat(volumeElement.value);
     document.querySelector('#volume-value').textContent = volume;
@@ -13,7 +52,7 @@ function updateConfigVolume() {
 function updateConfigSpeed() {
     const velocity = parseInt(velocityElement.value, 10);
     document.querySelector('#speed-value').textContent = velocity;
-    value_content = velocity + 10;
+    value_content = velocity === -5 ? 0 : velocity === 0 ? 1 : 2;
     updateConfig('SoundLabVelocidad', value_content)
 }
 

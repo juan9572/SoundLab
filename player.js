@@ -1,4 +1,6 @@
 var audio = document.getElementById('player');
+var quiz_id = document.currentScript.getAttribute('data-quiz_id');
+var questions = JSON.parse(document.currentScript.getAttribute('data-questions'));
 var last_question = ""
 var last_answer = ""
 var total_questions = 0
@@ -8,10 +10,15 @@ var speed = velocityElement.value;
 var curr_index = -1
 var curr_opt_index = 96
 
-fetch('/moodle/blocks/soundlab/questions_dom.json')
-    .then(response => response.json())
-    .then(data => { total_questions = data.length - 1 })
-    .catch(error => console.error(error));
+window.addEventListener("load", (event) => {
+    total_questions = questions.length - 1;
+    audio.pause();
+    audio.src = "/moodle/blocks/soundlab/audio/" + quiz_id + "/start" +
+        (speed == -5 ? "_s" : speed == 0 ? "_n" : "_f") + ".mp3";
+    audio.volume = volume;
+    audio.load();
+    audio.play();
+});
 
 document.addEventListener('keydown', function (event) {
     if (event.key === "q") { // Tecla q
@@ -36,7 +43,9 @@ document.addEventListener('keydown', function (event) {
         if (curr_index > total_questions) {
             curr_index = 0;
         }
-        audio.src = "/moodle/blocks/soundlab/audio/pregunta_" + curr_index.toString() + "/enunciado.mp3";
+        audio.src = "/moodle/blocks/soundlab/audio/" + quiz_id + "/pregunta_" +
+            curr_index.toString() + "/enunciado" +
+            (speed == -5 ? "_s" : speed == 0 ? "_n" : "_f") + ".mp3";
         last_question = audio.src;
         audio.volume = volume;
         curr_opt_index = 96;
@@ -48,7 +57,9 @@ document.addEventListener('keydown', function (event) {
         if (curr_index < 0) {
             curr_index = total_questions;
         }
-        audio.src = "/moodle/blocks/soundlab/audio/pregunta_" + curr_index.toString() + "/enunciado.mp3";
+        audio.src = "/moodle/blocks/soundlab/audio/" + quiz_id + "/pregunta_" +
+            curr_index.toString() + "/enunciado" +
+            (speed == -5 ? "_s" : speed == 0 ? "_n" : "_f") + ".mp3";
         last_question = audio.src;
         audio.volume = volume;
         curr_opt_index = 96;
@@ -58,9 +69,11 @@ document.addEventListener('keydown', function (event) {
         audio.pause();
         curr_opt_index -= 1;
         if (curr_opt_index < 97) {
-            curr_opt_index = 100;
+            curr_opt_index = 97 + questions[curr_index]["answers"].length - 1;
         }
-        audio.src = "/moodle/blocks/soundlab/audio/pregunta_" + curr_index.toString() + "/" + String.fromCharCode(curr_opt_index) + ".mp3";
+        audio.src = "/moodle/blocks/soundlab/audio/" + quiz_id + "/pregunta_" +
+            curr_index.toString() + "/" + String.fromCharCode(curr_opt_index) +
+            (speed == -5 ? "_s" : speed == 0 ? "_n" : "_f") + ".mp3";
         last_answer = audio.src;
         audio.volume = volume;
         audio.load();
@@ -68,10 +81,12 @@ document.addEventListener('keydown', function (event) {
     } else if (event.key === "ArrowDown") { //arrowDown
         audio.pause();
         curr_opt_index += 1;
-        if (curr_opt_index > 100) {
+        if (curr_opt_index - 97 > questions[curr_index]["answers"].length - 1) {
             curr_opt_index = 97;
         }
-        audio.src = "/moodle/blocks/soundlab/audio/pregunta_" + curr_index.toString() + "/" + String.fromCharCode(curr_opt_index) + ".mp3";
+        audio.src = "/moodle/blocks/soundlab/audio/" + quiz_id + "/pregunta_" +
+            curr_index.toString() + "/" + String.fromCharCode(curr_opt_index) +
+            (speed == -5 ? "_s" : speed == 0 ? "_n" : "_f") + ".mp3";
         last_answer = audio.src;
         audio.volume = volume;
         audio.load();
@@ -92,7 +107,7 @@ document.addEventListener('keydown', function (event) {
                 seconds > 1 ? seconds + " segundos" :
                     seconds != 0 ? "un segundo" : ""
             ) + ", para finalizar el cuestionario.";
-        let request = `http://api.voicerss.org/?key=e061b559eb42432880064c64462635dc&hl=es-mx&r=${speed}&src=${text}`;
+        let request = `http://api.voicerss.org/?key=8a35f597a70b42a8a86ba737d2a1ee2a&hl=es-mx&r=${speed}&c=MP3&f=16khz_16bit_stereo&v=Silvia&src=${text}`;
         // hace una petición HTTP a la API de VoiceRSS
         fetch(request)
             .then(response => {

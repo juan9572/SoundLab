@@ -34,10 +34,7 @@ function volumeSelection()
  */
 function speedSelection()
 {
-    for ($i = -10; $i <= 10; $i = $i + 1)
-    {
-        $speed[] = strval($i);
-    }
+    $speed = ["-5", "0", "5"];
     return $speed;
 }
 
