@@ -7,22 +7,22 @@ document.addEventListener('keydown', function (event) {
     if (event.key === "a") { // Tecla a
         switchElement.checked = !switchElement.checked;
         updateConfigActive();
-    }else if(event.altKey && event.key === '1') { //Volume Up
+    } else if(event.altKey && event.key === '1') { //Volume Up
         if(parseFloat(volumeElement.value) + 0.1 <= 1) {
             volumeElement.value = parseFloat(volumeElement.value) + 0.1;
             document.querySelector('#volume-value').textContent = volumeElement.value;
         }
-    }else if(event.altKey && event.key === '2') { //Volume Down
+    } else if(event.altKey && event.key === '2') { //Volume Down
         if(parseFloat(volumeElement.value) - 0.1 >= 0) {
             volumeElement.value = parseFloat(volumeElement.value) - 0.1;
             document.querySelector('#volume-value').textContent = volumeElement.value;
         }
-    }else if(event.altKey && event.key === '3') { //Speed up
+    } else if(event.altKey && event.key === '3') { //Speed up
         if(parseInt(velocityElement.value, 10) < 5){
             velocityElement.value = parseInt(velocityElement.value, 10) + 5;
             document.querySelector('#speed-value').textContent = velocityElement.value;
         }
-    }else if(event.altKey && event.key === '4') { //Speed down
+    } else if(event.altKey && event.key === '4') { //Speed down
         if(parseInt(velocityElement.value, 10) > -5){
             velocityElement.value = parseInt(velocityElement.value, 10) - 5;
             document.querySelector('#speed-value').textContent = velocityElement.value;
