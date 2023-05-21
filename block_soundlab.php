@@ -121,7 +121,7 @@ class block_soundlab extends block_base {
                         array('speed' => $providerNormal, 'suffix' => '_n.mp3'),
                         array('speed' => $providerFast, 'suffix' => '_f.mp3')
                     );
-                    $this->save_alphabet($providerNormal, $quizid);
+                    $this->save_alphabet($providerNormal);
                     $filename = "/var/www/html/moodle/blocks/soundlab/audio/". $quizid;
                     foreach ($speeds as $speed) {
                         $this->save_text_to_speach($this->get_info_quiz(), $speed['speed'], $filename, "/start" . $speed['suffix']);
@@ -185,6 +185,7 @@ class block_soundlab extends block_base {
             ", que tiene " . $number_of_question . " preguntas" .
             ", tienes " . $hour . " hora" . ($hour > 1 ? "s" : "") .
             " para finalizarlo.";
+        return $start_text;
     }
 
     function get_info_plugin(){
@@ -205,12 +206,11 @@ class block_soundlab extends block_base {
         . Tecla F2: Manual de usuario";
     }
 
-    function save_alphabet($provider, $quizid) {
-        $filename = "/var/www/html/moodle/blocks/soundlab/audio/". $quizid;
-        $letra = 'A';
-        while ($letra <= 'Z') {
+    function save_alphabet($provider) {
+        $filename = "/var/www/html/moodle/blocks/soundlab/alphabet";
+        for($i = 65; $i <= 90; $i++) {  
+            $letra = chr($i);
             $this->save_text_to_speach($letra, $provider, $filename, "/". $letra . ".mp3");
-            $letra++;
         }
     }
 
@@ -225,6 +225,10 @@ class block_soundlab extends block_base {
             if(!file_exists($filename)) {
                 mkdir(dirname($filename), 0777, true);
             }
+        }
+        $filename = "/var/www/html/moodle/blocks/soundlab/alphabet/data.mp3";
+        if(!file_exists($filename)) {
+            mkdir(dirname($filename), 0777, true);
         }
     }
 
