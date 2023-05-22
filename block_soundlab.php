@@ -121,7 +121,7 @@ class block_soundlab extends block_base {
                         array('speed' => $providerNormal, 'suffix' => '_n.mp3'),
                         array('speed' => $providerFast, 'suffix' => '_f.mp3')
                     );
-                    $this->save_alphabet($providerNormal);
+                    #$this->save_alphabet($providerNormal);
                     $filename = "/var/www/html/moodle/blocks/soundlab/audio/". $quizid;
                     foreach ($speeds as $speed) {
                         $this->save_text_to_speach($this->get_info_quiz(), $speed['speed'], $filename, "/start" . $speed['suffix']);
@@ -208,15 +208,15 @@ class block_soundlab extends block_base {
 
     function save_alphabet($provider) {
         $filename = "/var/www/html/moodle/blocks/soundlab/alphabet";
-        for($i = 65; $i <= 90; $i++) {  
+        for($i = 65; $i <= 90; $i++) {
             $letra = chr($i);
             $this->save_text_to_speach($letra, $provider, $filename, "/". $letra . ".mp3");
         }
     }
 
     function save_text_to_speach($text, $provider, $filename, $name) {
-        $tts_fast = new TextToSpeech($text, $provider);
-        $tts_slowed->save($filename . $name, $tts_slowed->getAudioData());     
+        $tts = new TextToSpeech($text, $provider);
+        $tts->save($filename . $name, $tts->getAudioData());
     }
 
     function create_folders($questions_data, $quizid) {
