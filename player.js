@@ -83,7 +83,7 @@ document.addEventListener('keydown', function (event) {
         }
         center_attention_in_answer(curr_index ,curr_opt_index - 97);
         audio.src = "/moodle/blocks/soundlab/audio/" + quiz_id + "/pregunta_" +
-            curr_index.toString() + "/" + String.fromCharCode(curr_opt_index) +
+            curr_index.toString() + "/" + String.fromCharCode(curr_opt_index - 32) +
             (speed == -5 ? "_s" : speed == 0 ? "_n" : "_f") + ".mp3";
         last_answer = audio.src;
         audio.volume = volume;
@@ -97,7 +97,7 @@ document.addEventListener('keydown', function (event) {
         }
         center_attention_in_answer(curr_index ,curr_opt_index - 97);
         audio.src = "/moodle/blocks/soundlab/audio/" + quiz_id + "/pregunta_" +
-            curr_index.toString() + "/" + String.fromCharCode(curr_opt_index) +
+            curr_index.toString() + "/" + String.fromCharCode(curr_opt_index - 32) +
             (speed == -5 ? "_s" : speed == 0 ? "_n" : "_f") + ".mp3";
         last_answer = audio.src;
         audio.volume = volume;

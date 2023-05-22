@@ -124,7 +124,7 @@ class block_soundlab extends block_base {
                     #$this->save_alphabet($providerNormal);
                     $filename = "/var/www/html/moodle/blocks/soundlab/audio/". $quizid;
                     foreach ($speeds as $speed) {
-                        $this->save_text_to_speach($this->get_info_quiz(), $speed['speed'], $filename, "/start" . $speed['suffix']);
+                        $this->save_text_to_speach($this->get_info_quiz($quizid, count($questions_data)), $speed['speed'], $filename, "/start" . $speed['suffix']);
                         $this->save_text_to_speach($this->get_info_plugin(), $speed['speed'], $filename, "/help" . $speed['suffix']);
                     }
                     for ($i = 0; $i < count($questions_data); $i++) {
@@ -177,7 +177,7 @@ class block_soundlab extends block_base {
         }
     }
 
-    function get_info_quiz(){
+    function get_info_quiz($quizid, $number_of_question){
         global $DB;
         $info = $DB->get_record('quiz', array('id' => $quizid));
         $hour = (intval($info->timelimit) / 3600);
