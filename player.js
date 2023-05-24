@@ -1,3 +1,4 @@
+window.is_essay = false;
 var audio = document.getElementById('player');
 var quiz_id = document.currentScript.getAttribute('data-quiz_id');
 var questions = JSON.parse(document.currentScript.getAttribute('data-questions'));
@@ -8,6 +9,7 @@ var volume = volumeElement.value;
 var speed = velocityElement.value;
 var curr_index = -1;
 var curr_opt_index = 96;
+var last_word = "";
 
 window.addEventListener("load", (event) => {
     get_ids_questions();
@@ -21,7 +23,7 @@ window.addEventListener("load", (event) => {
 });
 
 document.addEventListener('keydown', function (event) {
-    if (event.key === "q") { // Tecla q
+    if (event.key === "q" && window.is_essay === false) { // Tecla q
         audio.pause();
         if (last_question != "") {
             center_attention_in_question(curr_index);
@@ -30,7 +32,7 @@ document.addEventListener('keydown', function (event) {
             audio.load();
             audio.play();
         }
-    } else if (event.key === "r") { // Tecla r
+    } else if (event.key === "r" && window.is_essay === false) { // Tecla r
         audio.pause();
         if (last_answer != "") {
             center_attention_in_answer(curr_index, opt_index);
@@ -39,7 +41,7 @@ document.addEventListener('keydown', function (event) {
             audio.load();
             audio.play();
         }
-    } else if (event.key === "h") { // Tecla h
+    } else if (event.key === "h" && window.is_essay === false) { // Tecla h
         audio.pause();
         if(curr_index >= 0 && last_answer != "")
             decenter_attention_in_answer(curr_index, curr_opt_index - 97);
@@ -55,9 +57,12 @@ document.addEventListener('keydown', function (event) {
         audio.volume = volume;
         curr_opt_index = 96;
         last_answer = "";
+        if (questions[curr_index]["type"] === "essay") {
+            window.is_essay = true
+        }
         audio.load();
         audio.play();
-    } else if (event.key === "j") { // Tecla j
+    } else if (event.key === "j" && window.is_essay === false) { // Tecla j
         audio.pause();
         if(curr_index > 0 && last_answer != "")
             decenter_attention_in_answer(curr_index, curr_opt_index - 97);
@@ -73,9 +78,12 @@ document.addEventListener('keydown', function (event) {
         audio.volume = volume;
         curr_opt_index = 96;
         last_answer = "";
+        if (questions[curr_index]["type"] === "essay") {
+            window.is_essay = true
+        }
         audio.load();
         audio.play();
-    } else if (event.key === "ArrowUp") { // Tecla arrowUp
+    } else if (event.key === "ArrowUp" && window.is_essay === false) { // Tecla arrowUp
         audio.pause();
         curr_opt_index -= 1;
         if (curr_opt_index < 97) {
@@ -89,7 +97,7 @@ document.addEventListener('keydown', function (event) {
         audio.volume = volume;
         audio.load();
         audio.play();
-    } else if (event.key === "ArrowDown") { // Tecla arrowDown
+    } else if (event.key === "ArrowDown" && window.is_essay === false) { // Tecla arrowDown
         audio.pause();
         curr_opt_index += 1;
         if (curr_opt_index - 97 > questions[curr_index]["answers"].length - 1) {
@@ -103,14 +111,14 @@ document.addEventListener('keydown', function (event) {
         audio.volume = volume;
         audio.load();
         audio.play();
-    } else if(event.key == "F2") { // Tecla F2
+    } else if(event.key == "F2" && window.is_essay === false) { // Tecla F2
         audio.pause();
         audio.src = "/moodle/blocks/soundlab/audio/" + quiz_id + "/help" +
             (speed == -5 ? "_s" : speed == 0 ? "_n" : "_f") + ".mp3";
         audio.volume = volume;
         audio.load();
         audio.play();
-    } else if (event.key === "t") { // Tecla t
+    } else if (event.key === "t" && window.is_essay === false) { // Tecla t
         audio.pause();
         let timer = document.getElementById("quiz-time-left").innerText.split(":");
         let hours = parseInt(timer[0]);
@@ -149,6 +157,42 @@ document.addEventListener('keydown', function (event) {
             .catch(error => {
                 console.error(error);
             });
+    } else if (event.key === "Escape" && window.is_essay === true) {
+        window.is_essay = false;
+    } else if (event.key === " " && window.is_essay === true) {
+        let request = `http://api.voicerss.org/?key=8a35f597a70b42a8a86ba737d2a1ee2a&hl=es-mx&r=${speed}&c=MP3&f=16khz_16bit_stereo&v=Silvia&src=${last_word}`;
+        // hace una petición HTTP a la API de VoiceRSS
+        fetch(request)
+            .then(response => {
+                // verifica que la respuesta sea válida
+                if (!response.ok) {
+                    throw new Error('Error al obtener la respuesta de la API');
+                }
+                // extrae el contenido de la respuesta
+                return response.blob();
+            })
+            .then(blob => {
+                // crea una URL temporal para el archivo de audio
+                const url = URL.createObjectURL(blob);
+                // asigna la URL al elemento de audio
+                audio.src = url;
+                audio.volume = volume;
+                audio.load();
+                audio.play();
+            })
+            .catch(error => {
+                console.error(error);
+            });
+        last_word = "";
+    } else if (window.is_essay === true) {
+        if (/^[a-zA-ZñÑ]$/.test(event.key)) {
+            last_word = last_word + event.key;
+            audio.pause();
+            audio.src = `/moodle/blocks/soundlab/alphabet/${event.key.toUpperCase()}.mp3`;
+            audio.volume = volume;
+            audio.load();
+            audio.play();
+        }
     }
 });
 
@@ -175,7 +219,7 @@ function set_html_ids(index, id, answers_ids) {
         inputs.forEach(input => {
             let isKeyboardEvent = false;
             input.addEventListener('keydown', function(event) {
-                if (event.key === "Enter") {
+                if (event.key === "Enter" && window.is_essay === false) {
                     isKeyboardEvent = true;
                     if(!input.checked) {
                         input.click();

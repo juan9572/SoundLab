@@ -3,8 +3,9 @@ var volumeElement = document.getElementById('volume');
 var velocityElement = document.getElementById('velocity');
 let value_content;
 
+
 document.addEventListener('keydown', function (event) {
-    if (event.key === "a") { // Tecla a
+    if (event.key === "a" && (window.is_essay === false || !(typeof window.is_essay !== 'undefined' && window.is_essay !== null))) { // Tecla a
         switchElement.checked = !switchElement.checked;
         updateConfigActive();
     } else if(event.altKey && event.key === '1') { //Volume Up
