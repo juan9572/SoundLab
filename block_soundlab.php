@@ -52,11 +52,10 @@ class block_soundlab extends block_base {
     }
 
     public function instance_allow_multiple() {
-        return false;
+        return true;
     }
 
-    public function instance_allow_config()
-    {
+    public function instance_allow_config() {
         return false;
     }
 
@@ -73,7 +72,7 @@ class block_soundlab extends block_base {
         return [
             'admin' => false,
             'site-index' => false,
-            'course-view' => false,
+            'course-view' => true,
             'mod' => true,
             'my' => false,
         ];
@@ -101,73 +100,93 @@ class block_soundlab extends block_base {
         }
         $this->content = new stdClass;
         $ttsAppURL = $CFG->wwwroot . '/blocks/soundlab/';
-        if($active == 1){
-            $text = '
+        $currentUrl = $PAGE->url;
+        if($active == 1) {
+            if (strpos($currentUrl, 'summary') == false) {
+                $text = '
                 <script src="/moodle/blocks/soundlab/get_questions_from_dom.js"></script>
                 <script src="/moodle/blocks/soundlab/controler.js"></script>
-            ';
+                ';
+            }else {
+                $text = '
+                <script src="/moodle/blocks/soundlab/finish_attemp.js"></script>
+                ';
+            }
             $this->content->text = $this->set_structure_for_plugin($volume, $speed, 'checked', $text);
-            $filename_questions = '/var/www/html/moodle/blocks/soundlab/questions_dom.json';
-            if (file_exists($filename_questions)) { // Si ya se cargo el archivo.
-                $json_data = json_decode(file_get_contents($filename_questions));
-                $questions_data = $this->get_content_from_db($json_data);
-                if(!file_exists('/var/www/html/moodle/blocks/soundlab/audio/' . $quizid)) { // Si no se ha creado el contenido de los audios.
-                    $this->create_folders($questions_data, $quizid);
-                    $providerSlow = new VoiceRssProvider("8a35f597a70b42a8a86ba737d2a1ee2a", "es-mx", -5);
-                    $providerNormal = new VoiceRssProvider("8a35f597a70b42a8a86ba737d2a1ee2a", "es-mx", 0);
-                    $providerFast = new VoiceRssProvider("8a35f597a70b42a8a86ba737d2a1ee2a", "es-mx", 5);
-                    $speeds = array(
-                        array('speed' => $providerSlow, 'suffix' => '_s.mp3'),
-                        array('speed' => $providerNormal, 'suffix' => '_n.mp3'),
-                        array('speed' => $providerFast, 'suffix' => '_f.mp3')
-                    );
-                    #$this->save_alphabet($providerNormal);
-                    $filename = "/var/www/html/moodle/blocks/soundlab/audio/". $quizid;
-                    foreach ($speeds as $speed) {
-                        $this->save_text_to_speach($this->get_info_quiz($quizid, count($questions_data)), $speed['speed'], $filename, "/start" . $speed['suffix']);
-                        $this->save_text_to_speach($this->get_info_plugin(), $speed['speed'], $filename, "/help" . $speed['suffix']);
-                    }
-                    for ($i = 0; $i < count($questions_data); $i++) {
-                        $enunciado = "Pregunta número " . $questions_data[$i]['number'] . ". " .
-                            $questions_data[$i]['statement'] . ". ";
-                        $filename = "/var/www/html/moodle/blocks/soundlab/audio/". $quizid ."/pregunta_" . $i;
-                        foreach ($speeds as $speed) {
-                            $this->save_text_to_speach($enunciado, $speed['speed'], $filename, "/enunciado" . $speed['suffix']);
-                        }
-                        if ($questions_data[$i]['type'] == "multichoice" || $questions_data[$i]['type'] == "truefalse") {
-                            $answers = $questions_data[$i]["answers"];
-                            $options = range('A', 'D');
+            $this->content->text .= '<audio id="player"></audio>';
+            if (strpos($currentUrl, 'summary') == false) {
+                $filename_questions = '/var/www/html/moodle/blocks/soundlab/questions_dom.json';
+                if (file_exists($filename_questions)) { // Si ya se cargo el archivo.
+                    $json_data = json_decode(file_get_contents($filename_questions));
+                    $questions_data = $this->get_content_from_db($json_data);
+                    if(!file_exists('/var/www/html/moodle/blocks/soundlab/audio/' . $quizid)) { // Si no se ha creado el contenido de los audios.
+                        $this->create_folders($questions_data, $quizid);
+                        $providerSlow = new VoiceRssProvider("8a35f597a70b42a8a86ba737d2a1ee2a", "es-mx", -5);
+                        $providerNormal = new VoiceRssProvider("8a35f597a70b42a8a86ba737d2a1ee2a", "es-mx", 0);
+                        $providerFast = new VoiceRssProvider("8a35f597a70b42a8a86ba737d2a1ee2a", "es-mx", 5);
+                        $speeds = array(
+                            array('speed' => $providerSlow, 'suffix' => '_s.mp3'),
+                            array('speed' => $providerNormal, 'suffix' => '_n.mp3'),
+                            array('speed' => $providerFast, 'suffix' => '_f.mp3')
+                        );
+                        #$this->save_alphabet($providerNormal);
+                        $filename = "/var/www/html/moodle/blocks/soundlab/audio/". $quizid;
+                        $types = $this->save_types_question();
+                        foreach ($types as $type) {
                             foreach ($speeds as $speed) {
-                                foreach ($answers as $index => $answer) {
-                                    $option = $options[$index] . ", " . $answer . ". ";
-                                    $this->save_text_to_speach($option, $speed['speed'], $filename, "/" . $options[$index] . $speed['suffix']);
-                                }
+                                $this->save_text_to_speach('Tipo de pregunta: ' . $type['text'], $speed['speed'], $filename, "/type" . $type['type'] . $speed['suffix']);
                             }
-                        }else if ($questions_data[$i]['type'] == "match") {
-                            $options = $questions_data[$i]["answers"]["options"];
-                            $answerOptions = $questions_data[$i]["answer_options"]["options"];
-                            for ($j = 0; $j < count($options); $j++) {
-                                $option = chr($j + 65) . ", " . $options[$j];
-                                $answer_option = $j . ", " . $answerOptions[$j];
+                        }
+                        foreach ($speeds as $speed) {
+                            $this->save_text_to_speach('Pregunta ya respuesta', $speed['speed'], $filename, "/ans" . $speed['suffix']);
+                            $this->save_text_to_speach('Pregunta sin responder', $speed['speed'], $filename, "/notAns" . $speed['suffix']);
+                        }
+                        foreach ($speeds as $speed) {
+                            $this->save_text_to_speach($this->get_info_quiz($quizid, count($questions_data)), $speed['speed'], $filename, "/start" . $speed['suffix']);
+                            $this->save_text_to_speach($this->get_info_plugin(), $speed['speed'], $filename, "/help" . $speed['suffix']);
+                        }
+                        for ($i = 0; $i < count($questions_data); $i++) {
+                            $enunciado = "Pregunta número " . $questions_data[$i]['number'] . ". " .
+                                $questions_data[$i]['statement'] . ". ";
+                            $filename = "/var/www/html/moodle/blocks/soundlab/audio/". $quizid ."/pregunta_" . $i;
+                            foreach ($speeds as $speed) {
+                                $this->save_text_to_speach($enunciado, $speed['speed'], $filename, "/enunciado" . $speed['suffix']);
+                            }
+                            if ($questions_data[$i]['type'] == "multichoice" || $questions_data[$i]['type'] == "truefalse") {
+                                $answers = $questions_data[$i]["answers"];
+                                $options = range('A', 'D');
                                 foreach ($speeds as $speed) {
-                                    $this->save_text_to_speach($option, $speed['speed'], $filename, "/" . chr(65 + $j) . $speed['suffix']);
-                                    $this->save_text_to_speach($answer_option, $speed['speed'], $filename, "/" . $j . $speed['suffix']);
+                                    foreach ($answers as $index => $answer) {
+                                        $option = $options[$index] . ", " . $answer . ". ";
+                                        $this->save_text_to_speach($option, $speed['speed'], $filename, "/" . $options[$index] . $speed['suffix']);
+                                    }
+                                }
+                            }else if ($questions_data[$i]['type'] == "match") {
+                                $options = $questions_data[$i]["answers"]["options"];
+                                $answerOptions = $questions_data[$i]["answer_options"]["options"];
+                                for ($j = 0; $j < count($options); $j++) {
+                                    $option = chr($j + 65) . ", " . $options[$j];
+                                    $answer_option = $j . ", " . $answerOptions[$j];
+                                    foreach ($speeds as $speed) {
+                                        $this->save_text_to_speach($option, $speed['speed'], $filename, "/" . chr(65 + $j) . $speed['suffix']);
+                                        $this->save_text_to_speach($answer_option, $speed['speed'], $filename, "/" . $j . $speed['suffix']);
+                                    }
                                 }
                             }
                         }
                     }
+                    $data = htmlspecialchars(json_encode($questions_data), ENT_QUOTES, 'UTF-8');
+                    $this->content->text .= '<audio id="player"></audio>';
+                    $this->content->text .= '<script src="/moodle/blocks/soundlab/player.js" data-quiz_id="' .
+                        $quizid . '" data-questions="' . $data . '"></script>';
+                }else{// Si no se ha terminado de cargar se reinicia la página.
+                    $this->content->text .= '
+                    <script>
+                        setTimeout(() => {
+                            location.reload();
+                        }, 300);
+                    </script>';
                 }
-                $data = htmlspecialchars(json_encode($questions_data), ENT_QUOTES, 'UTF-8');
-                $this->content->text .= '<audio id="player"></audio>';
-                $this->content->text .= '<script src="/moodle/blocks/soundlab/player.js" data-quiz_id="' .
-                    $quizid . '" data-questions="' . $data . '"></script>';
-            }else{// Si no se ha terminado de cargar se reinicia la página.
-                $this->content->text .= '
-                <script>
-                    setTimeout(() => {
-                        location.reload();
-                    }, 300);
-                </script>';
             }
         }else{
             $text = '
@@ -175,6 +194,15 @@ class block_soundlab extends block_base {
             ';
             $this->content->text = $this->set_structure_for_plugin($volume, $speed, '', $text);
         }
+    }
+
+    function save_types_question(){
+        $arr = array(
+            array('text' => 'Selección múltiple', 'type' => 'mlt'),
+            array('text' => 'Verdadero o falso', 'type' => 'tf'),
+            array('text' => 'abierta', 'type' => 'opn')
+        );
+        return $arr;
     }
 
     function get_info_quiz($quizid, $number_of_question){
@@ -198,6 +226,11 @@ class block_soundlab extends block_base {
         . Tecla a rouh up: Navegar hacia arriba en las opciones de respuesta de una pregunta
         . Tecla a rouh down: Navegar hacia abajo en las opciones de respuesta de una pregunta
         . Tecla t: Obtener el tiempo restante para finalizar el cuestionario
+        . Tecla f: Finaliza el cuestionario. 
+        . Tecla i: Obtiene el tipo de pregunta actual
+        . Tecla s: Obtiene el estado de la pregunta actual
+        . Tecla Enter: Selecciona la opción de respuesta escuchada
+        . Tecla Escape: Se sale del cuadro de texto en una pregunta abierta
         . Tecla a: Activa o desactiva el plugin
         . Tecla Alt más 1: Aumentar el volumen
         . Tecla Alt más 2: Reducir el volumen
@@ -212,6 +245,7 @@ class block_soundlab extends block_base {
             $letra = chr($i);
             $this->save_text_to_speach($letra, $provider, $filename, "/". $letra . ".mp3");
         }
+        $this->save_text_to_speach('Ñ', $provider, $filename, "/". 'Ñ' . ".mp3");
     }
 
     function save_text_to_speach($text, $provider, $filename, $name) {

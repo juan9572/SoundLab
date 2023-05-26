@@ -9,15 +9,18 @@ var volume = volumeElement.value;
 var speed = velocityElement.value;
 var curr_index = -1;
 var curr_opt_index = 96;
-var last_word = "";
+var last_word = ""; //Realizar un script que se encargue de finalizarlo.
 
 window.addEventListener("load", (event) => {
     get_ids_questions();
+    let first = set_answered_already();
+    center_attention_in_question(first);
+    curr_index = first - 1;
     total_questions = questions.length - 1;
     audio.pause();
     audio.src = "/moodle/blocks/soundlab/audio/" + quiz_id + "/start" +
         (speed == -5 ? "_s" : speed == 0 ? "_n" : "_f") + ".mp3";
-     audio.volume = volume;
+    audio.volume = volume;
     audio.load();
     audio.play();
 });
@@ -57,9 +60,6 @@ document.addEventListener('keydown', function (event) {
         audio.volume = volume;
         curr_opt_index = 96;
         last_answer = "";
-        if (questions[curr_index]["type"] === "essay") {
-            window.is_essay = true
-        }
         audio.load();
         audio.play();
     } else if (event.key === "j" && window.is_essay === false) { // Tecla j
@@ -78,9 +78,6 @@ document.addEventListener('keydown', function (event) {
         audio.volume = volume;
         curr_opt_index = 96;
         last_answer = "";
-        if (questions[curr_index]["type"] === "essay") {
-            window.is_essay = true
-        }
         audio.load();
         audio.play();
     } else if (event.key === "ArrowUp" && window.is_essay === false) { // Tecla arrowUp
@@ -111,13 +108,15 @@ document.addEventListener('keydown', function (event) {
         audio.volume = volume;
         audio.load();
         audio.play();
-    } else if(event.key == "F2" && window.is_essay === false) { // Tecla F2
+    } else if (event.key == "F2" && window.is_essay === false) { // Tecla F2
         audio.pause();
         audio.src = "/moodle/blocks/soundlab/audio/" + quiz_id + "/help" +
             (speed == -5 ? "_s" : speed == 0 ? "_n" : "_f") + ".mp3";
         audio.volume = volume;
         audio.load();
         audio.play();
+    } else if (event.key === "f" && window.is_essay === false) { // Tecla f
+        document.getElementById("mod_quiz-next-nav").click();
     } else if (event.key === "t" && window.is_essay === false) { // Tecla t
         audio.pause();
         let timer = document.getElementById("quiz-time-left").innerText.split(":");
@@ -157,8 +156,46 @@ document.addEventListener('keydown', function (event) {
             .catch(error => {
                 console.error(error);
             });
+    } else if (event.key === "i" && window.is_essay === false) { // Tecla i
+        if (last_question != "") {
+            type = "";
+            if(questions[curr_index].type === "multichoice") {
+                type = "mlt";
+            }
+            else if(questions[curr_index].type === "truefalse") {
+                type = "tf";
+            }
+            else if(questions[curr_index].type === "essay") {
+                type = "opn";
+            }
+            audio.pause();
+            audio.src = "/moodle/blocks/soundlab/audio/" + quiz_id + "/type" + type +
+                (speed == -5 ? "_s" : speed == 0 ? "_n" : "_f") + ".mp3";
+            audio.volume = volume;
+            audio.load();
+            audio.play();
+        }
+    } else if (event.key === "s" && window.is_essay === false) { // Tecla s
+        if (last_question != "") {
+            ans = "/ans"
+            if(!questions[curr_index].answered) {
+                ans = "/notAns"
+            }
+            audio.pause();
+            audio.src = "/moodle/blocks/soundlab/audio/" + quiz_id + ans +
+                (speed == -5 ? "_s" : speed == 0 ? "_n" : "_f") + ".mp3";
+            audio.volume = volume;
+            audio.load();
+            audio.play();
+        }
     } else if (event.key === "Escape" && window.is_essay === true) {
+        decenter_attention_in_answer(curr_index ,0);
         window.is_essay = false;
+        if(questions[curr_index].answers_ids[0].value != "") {
+            questions[curr_index].answered = true;
+        }else {
+            questions[curr_index].answered = false;
+        }
     } else if (event.key === " " && window.is_essay === true) {
         let request = `http://api.voicerss.org/?key=8a35f597a70b42a8a86ba737d2a1ee2a&hl=es-mx&r=${speed}&c=MP3&f=16khz_16bit_stereo&v=Silvia&src=${last_word}`;
         // hace una petición HTTP a la API de VoiceRSS
@@ -184,7 +221,10 @@ document.addEventListener('keydown', function (event) {
                 console.error(error);
             });
         last_word = "";
+    } else if (event.key === "Enter" && questions[curr_index]["type"] === "essay") {
+        window.is_essay = true
     } else if (window.is_essay === true) {
+        center_attention_in_answer(curr_index ,0);
         if (/^[a-zA-ZñÑ]$/.test(event.key)) {
             last_word = last_word + event.key;
             audio.pause();
@@ -192,6 +232,8 @@ document.addEventListener('keydown', function (event) {
             audio.volume = volume;
             audio.load();
             audio.play();
+        } else if (event.key === "Backspace") {
+            last_word = last_word.slice(0, -1);
         }
     }
 });
@@ -221,12 +263,16 @@ function set_html_ids(index, id, answers_ids) {
             input.addEventListener('keydown', function(event) {
                 if (event.key === "Enter" && window.is_essay === false) {
                     isKeyboardEvent = true;
-                    if(!input.checked) {
+                    if(questions[index].answered && input.checked) {
+                        document.getElementById(
+                            questions[index].question_id
+                        ).querySelectorAll("a")[2].click();
+                        input.checked = false;
+                        questions[curr_index].answered = false;
+                    } else {
                         input.click();
                         event.preventDefault();
-                    }else{
-                        input.checked = false;
-                        event.preventDefault();
+                        modifiedAnswered(curr_index);
                     }
                 }
             });
@@ -251,6 +297,46 @@ function get_ids_questions() {
         set_html_ids(index, element.id, element.querySelector('.answer'));
         index++;
     });
+}
+
+function set_answered_already() {
+    for(let i = 0; i < questions.length; i++) {
+        if(questions[i].type === "essay") {
+            if(questions[i].answers_ids[0].value.trim() != "") {
+                questions[i].answered = true;
+            }else {
+                questions[i].answered = false;
+            }
+        }else{
+            for(let j = 0; j < questions[i].answers.length; j++) {
+                if(questions[i].answers_ids[j].checked) {
+                    questions[i].answered = true;
+                    break;
+                }else {
+                    questions[i].answered = false;
+                }
+            }
+        }
+    }
+    let fist_instance = 0;
+    for(let i = 0; i < questions.length; i++) {
+        if(!questions[i].answered) {
+            fist_instance = i;
+            break;
+        }
+    }
+    return fist_instance;
+}
+
+function modifiedAnswered(index_question) {
+    for(let j = 0; j < questions[index_question].answers.length; j++) {
+        if(questions[index_question].answers_ids[j].checked) {
+            questions[index_question].answered = true;
+            break;
+        }else {
+            questions[index_question].answered = false;
+        }
+    }
 }
 
 function play() {
